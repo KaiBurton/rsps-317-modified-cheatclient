@@ -1,0 +1,122 @@
+package rs.bots.scripts;
+
+import rs.FakePacket;
+import rs.bots.BotManager;
+import rs.bots.BotThreadFactory;
+import rs.client;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Created by Kai on 10/02/2016.
+ *
+ * @ Jet Kai
+ */
+public class TutorialScript {
+
+    private BotManager AABotManager;
+
+    private ScheduledExecutorService threadPool = null;
+
+    private FakePacket fakePacket;
+    private client player;
+
+    public TutorialScript(BotManager AABotManager) {
+        this.AABotManager = AABotManager;
+        this.player = getAABotManager().getClient();
+        this.fakePacket = new FakePacket(player);
+    }
+
+    public void start() {
+        if (isRunning())
+            return;
+        final int[] stage = {0};
+        getAABotManager().startBotUptime = System.currentTimeMillis();
+        System.out.println("Starting Tutorial Skip");
+        threadPool.scheduleAtFixedRate(() -> {
+            if (player.isLoggedIn() && getAABotManager().regionLoaded && getAABotManager().isBotting()) {
+                int x = player.getBaseX() + (player.getPlayerCoordX() - 6 >> 7);
+                int y = player.getBaseY() + (player.getPlayerCoordY() - 6 >> 7);
+                int thievingLevel = player.getCurrentStats();
+                if (thievingLevel == 1) {
+                    if (getAABotManager().isBotting() && stage[0] <= 6) {
+                        switch (stage[0]) {
+                            case 0:
+                                player.doWalkTo(2, 0, 0, 0, player.getPlayerPathY(), 0, 0, player.getPlayerPathY(), player.getPlayerPathX(), false, player.getPlayerPathX() - 1);
+                                stage[0]++;
+                                break;
+                            case 1:
+                                stage[0]++;
+                                break;
+                            case 2:
+                                if (x != 3212 && y != 3428) {
+                                    getAABotManager().getApeAtollTeleScript().start();
+                                    System.out.println("STOPPING SCRIPT");
+                                    stop();
+                                }
+                                stage[0]++;
+                                break;
+                            case 3:
+                                player.getStream().createFrame(40);
+                                player.getStream().writeWord(4892);
+                                stage[0]++;
+                                break;
+                            case 4:
+                                player.getStream().createFrame(185);
+                                player.getStream().writeWord(2482);
+                                stage[0]++;
+                                break;
+                            case 5:
+                                player.getStream().createFrame(185);
+                                player.getStream().writeWord(2462);
+                                fakePacket.sendRandomAppearance();
+                                stage[0]++;
+                            case 6:
+                                if (x == 3212 && y == 3428) {
+                                    fakePacket.sendRandomAppearance();
+                                    player.getStream().createFrame(40);
+                                    player.getStream().writeWord(4907);
+                                    getAABotManager().getApeAtollTeleScript().start();
+                                    stage[0]++;
+                                } else {
+                                    fakePacket.sendRandomAppearance();
+                                    player.getStream().createFrame(40);
+                                    player.getStream().writeWord(4907);
+                                    getAABotManager().getApeAtollTeleScript().start();
+                                }
+                                stop();
+                        }
+                    } else
+                        stop();
+                } else {
+                    getAABotManager().getApeAtollTeleScript().start();
+                    stop();
+                }
+            }
+        }, 3, 1, TimeUnit.SECONDS);
+    }
+
+    private boolean isRunning() {
+        if (threadPool != null && !threadPool.isShutdown())
+            return true;
+        startThread();
+        return false;
+    }
+
+    private void startThread() {
+        threadPool = Executors.newSingleThreadScheduledExecutor(new BotThreadFactory());
+    }
+
+    public void stop() {
+        if (threadPool != null) {
+            threadPool.shutdown();
+            threadPool = null;
+        }
+    }
+
+    public BotManager getAABotManager() {
+        return AABotManager;
+    }
+}
